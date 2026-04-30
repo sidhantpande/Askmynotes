@@ -1,0 +1,30 @@
+{
+  "name": "practicehackathon",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@langchain/community": "^1.1.19",
+    "@langchain/core": "^1.1.28",
+    "@langchain/google-genai": "^2.1.20",
+    "@langchain/textsplitters": "^1.0.1",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.97.0",
+    "@vercel/analytics": "^1.6.1",
+    "chromadb": "^3.3.1",
+    "langchain": "^1.2.27",
+    "next": "16.1.6",
+    "pdf-parse": "^2.4.5",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6"
+  }
+}

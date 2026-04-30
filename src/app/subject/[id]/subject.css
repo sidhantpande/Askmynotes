@@ -1,0 +1,1065 @@
+/* ================================================================
+   AskMyNotes – Subject Interface Styles
+   ================================================================ */
+
+.subject-layout {
+    min-height: 100vh;
+    background: var(--bg-page);
+    color: var(--txt-primary);
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Top Bar ──────────────────────────────────────────────────── */
+.subject-topbar {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(8, 5, 15, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+body.light-mode .subject-topbar {
+    background: rgba(248, 245, 255, 0.85);
+}
+
+.subject-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.subject-back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--txt-secondary);
+    cursor: pointer;
+    border: 1px solid var(--border-subtle);
+    background: none;
+    transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+    text-decoration: none;
+}
+
+.subject-back-btn:hover {
+    color: var(--txt-primary);
+    border-color: var(--clr-purple);
+    background: rgba(124, 58, 237, 0.1);
+}
+
+.subject-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.subject-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.subject-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(16, 185, 129, 0.15);
+    color: #6EE7B7;
+}
+
+body.light-mode .subject-status-chip {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.subject-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10B981;
+}
+
+/* ── Main Content Area ────────────────────────────────────────── */
+.subject-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    position: relative;
+}
+
+/* ── Upload State (no material yet) ───────────────────────────── */
+.subject-upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    text-align: center;
+    max-width: 500px;
+}
+
+.subject-upload-box {
+    width: 160px;
+    height: 160px;
+    border: 2px dashed rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    color: var(--txt-muted);
+    transition: border-color var(--t-base), color var(--t-base), background var(--t-base), transform var(--t-base);
+    background: none;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.subject-upload-box:hover {
+    border-color: var(--clr-purple);
+    color: var(--clr-purple-2);
+    background: rgba(124, 58, 237, 0.04);
+    transform: scale(1.03);
+}
+
+body.light-mode .subject-upload-box {
+    border-color: rgba(124, 58, 237, 0.2);
+}
+
+.subject-upload-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: rgba(124, 58, 237, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--clr-purple);
+}
+
+.subject-upload-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.subject-upload-subtitle {
+    font-size: 0.9rem;
+    color: var(--txt-secondary);
+    line-height: 1.5;
+}
+
+/* Upload options (text or PDF) */
+.subject-upload-options {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.subject-upload-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 28px;
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: border-color var(--t-base), background var(--t-base), transform var(--t-base);
+    font-family: var(--font-sans);
+    color: var(--txt-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.subject-upload-option:hover {
+    border-color: var(--clr-purple);
+    background: var(--bg-card-h);
+    transform: translateY(-2px);
+}
+
+.subject-upload-option-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.subject-upload-option-icon.text {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3B82F6;
+}
+
+.subject-upload-option-icon.pdf {
+    background: rgba(239, 68, 68, 0.15);
+    color: #EF4444;
+}
+
+/* Text input modal */
+.subject-text-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.subject-text-modal {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-xl);
+    width: 100%;
+    max-width: 600px;
+    padding: 28px;
+}
+
+.subject-text-modal h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.subject-text-modal textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 14px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border-subtle);
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--txt-primary);
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
+    outline: none;
+    resize: vertical;
+    transition: border-color var(--t-fast);
+    line-height: 1.6;
+}
+
+body.light-mode .subject-text-modal textarea {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.subject-text-modal textarea:focus {
+    border-color: var(--clr-purple);
+}
+
+.subject-text-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+/* ── Chat State (material uploaded) ───────────────────────────── */
+.subject-chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 32px 0 0;
+}
+
+/* Greeting */
+.subject-chat-greeting {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.subject-chat-sparkle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    background: var(--grad-text);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+}
+
+.subject-chat-heading {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 8px;
+}
+
+.subject-chat-subtext {
+    font-size: 0.95rem;
+    color: var(--txt-secondary);
+}
+
+/* Messages area */
+.subject-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.subject-msg {
+    display: flex;
+    gap: 12px;
+    max-width: 90%;
+}
+
+.subject-msg.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.subject-msg-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.subject-msg-avatar.ai {
+    background: var(--grad-main);
+    color: #fff;
+}
+
+.subject-msg-avatar.human {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93C5FD;
+}
+
+.subject-msg-bubble {
+    padding: 14px 18px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.subject-msg.ai .subject-msg-bubble {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-bottom-left-radius: 4px;
+}
+
+.subject-msg.user .subject-msg-bubble {
+    background: var(--clr-purple);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+/* Prompt bar */
+.subject-prompt-wrap {
+    position: sticky;
+    bottom: 0;
+    padding: 16px 0 24px;
+    background: linear-gradient(transparent, var(--bg-page) 20%);
+}
+
+.subject-prompt-bar {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-xl);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.subject-prompt-bar:focus-within {
+    border-color: var(--clr-purple);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.subject-prompt-input {
+    width: 100%;
+    padding: 14px 18px 8px;
+    border: none;
+    background: none;
+    color: var(--txt-primary);
+    font-size: 0.95rem;
+    outline: none;
+    font-family: var(--font-sans);
+    resize: none;
+    min-height: 44px;
+    max-height: 120px;
+}
+
+.subject-prompt-input::placeholder {
+    color: var(--txt-muted);
+}
+
+.subject-prompt-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 12px 8px;
+}
+
+.subject-prompt-left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.subject-prompt-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.subject-prompt-icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--txt-muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+    transition: color var(--t-fast), background var(--t-fast);
+}
+
+.subject-prompt-icon-btn:hover {
+    color: var(--txt-primary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.subject-prompt-mic {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--txt-secondary);
+    cursor: pointer;
+    border: 1px solid var(--border-subtle);
+    background: none;
+    transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+}
+
+.subject-prompt-mic:hover {
+    color: var(--txt-primary);
+    border-color: var(--clr-purple);
+    background: rgba(124, 58, 237, 0.1);
+}
+
+.subject-prompt-mic.recording {
+    color: #EF4444;
+    border-color: #EF4444;
+    background: rgba(239, 68, 68, 0.1);
+    animation: micPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes micPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
+}
+
+.subject-prompt-send {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--grad-main);
+    color: #fff;
+    cursor: pointer;
+    border: none;
+    transition: opacity var(--t-fast), transform var(--t-fast);
+}
+
+.subject-prompt-send:hover {
+    opacity: 0.9;
+    transform: scale(1.06);
+}
+
+.subject-prompt-send:disabled {
+    opacity: 0.4;
+    cursor: default;
+    transform: none;
+}
+
+/* Suggestion chips */
+.subject-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.subject-suggestion-chip {
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-card);
+    color: var(--txt-secondary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
+    font-family: var(--font-sans);
+}
+
+.subject-suggestion-chip:hover {
+    border-color: var(--clr-purple);
+    color: var(--txt-primary);
+    background: var(--bg-card-h);
+}
+
+/* Material info badge */
+.subject-material-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(124, 58, 237, 0.1);
+    color: #A78BFA;
+    margin-bottom: 20px;
+}
+
+body.light-mode .subject-material-badge {
+    color: #7C3AED;
+}
+
+/* Loading dots */
+.subject-loading-dots {
+    display: flex;
+    gap: 4px;
+    padding: 14px 18px;
+}
+
+.subject-loading-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--txt-muted);
+    animation: dotBounce 1.4s infinite ease-in-out both;
+}
+
+.subject-loading-dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.subject-loading-dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes dotBounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+        opacity: 0.4;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ── Upload Loading & Error ────────────────────────────────────── */
+.subject-upload-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+}
+
+.subject-upload-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-subtle);
+    border-top-color: var(--clr-purple);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.subject-upload-error {
+    color: #ef4444;
+    font-size: 0.85rem;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* ── Message Content Wrapper ──────────────────────────────────── */
+.subject-msg-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 100%;
+}
+
+/* ── Confidence Badge ─────────────────────────────────────────── */
+.subject-confidence-badge {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+/* ── Citation Pills ───────────────────────────────────────────── */
+.subject-citations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.subject-citation-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    background: rgba(124, 58, 237, 0.1);
+    color: #a78bfa;
+    border: 1px solid rgba(124, 58, 237, 0.15);
+}
+
+body.light-mode .subject-citation-pill {
+    color: #7c3aed;
+}
+
+/* ── Collapsible Snippets ─────────────────────────────────────── */
+.subject-snippets-wrap {
+    margin-top: 2px;
+}
+
+.subject-snippets-toggle {
+    background: none;
+    border: none;
+    color: var(--txt-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 0;
+    font-family: var(--font-sans);
+    transition: color var(--t-fast);
+}
+
+.subject-snippets-toggle:hover {
+    color: var(--txt-primary);
+}
+
+.subject-snippets-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.subject-snippet-item {
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-subtle);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--txt-secondary);
+}
+
+body.light-mode .subject-snippet-item {
+    background: rgba(124, 58, 237, 0.03);
+}
+
+.subject-snippet-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--clr-purple);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* ── Study Mode Panel ─────────────────────────────────────────── */
+.subject-study-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-xl);
+    padding: 24px;
+    margin-bottom: 24px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.subject-study-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.subject-study-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.subject-study-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-subtle);
+    background: none;
+    color: var(--txt-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: color var(--t-fast), border-color var(--t-fast);
+}
+
+.subject-study-close:hover {
+    color: var(--txt-primary);
+    border-color: var(--clr-purple);
+}
+
+.subject-study-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 0;
+    color: var(--txt-muted);
+    font-size: 0.9rem;
+}
+
+.subject-study-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.subject-study-section h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--txt-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 0.78rem;
+}
+
+/* ── MCQ Cards ────────────────────────────────────────────────── */
+.subject-mcq-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: 18px;
+    margin-bottom: 12px;
+}
+
+body.light-mode .subject-mcq-card {
+    background: rgba(124, 58, 237, 0.02);
+}
+
+.subject-mcq-question {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.subject-mcq-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.subject-mcq-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    background: none;
+    color: var(--txt-primary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: var(--font-sans);
+    text-align: left;
+    transition: border-color var(--t-fast), background var(--t-fast);
+}
+
+.subject-mcq-option:hover {
+    border-color: var(--clr-purple);
+    background: rgba(124, 58, 237, 0.06);
+}
+
+.subject-mcq-option.correct {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    color: #6ee7b7;
+}
+
+.subject-mcq-option.wrong {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+}
+
+body.light-mode .subject-mcq-option.correct {
+    color: #059669;
+}
+
+body.light-mode .subject-mcq-option.wrong {
+    color: #dc2626;
+}
+
+.subject-mcq-key {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(124, 58, 237, 0.12);
+    color: var(--clr-purple);
+    flex-shrink: 0;
+}
+
+.subject-mcq-explanation {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(16, 185, 129, 0.06);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--txt-secondary);
+}
+
+.subject-mcq-citation {
+    margin-top: 6px;
+    font-size: 0.72rem;
+    color: var(--txt-muted);
+}
+
+/* ── Short Answer Cards ───────────────────────────────────────── */
+.subject-sa-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-lg);
+    padding: 18px;
+    margin-bottom: 12px;
+}
+
+body.light-mode .subject-sa-card {
+    background: rgba(124, 58, 237, 0.02);
+}
+
+.subject-sa-question {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.subject-sa-reveal {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--clr-purple);
+    background: rgba(124, 58, 237, 0.08);
+    color: var(--clr-purple);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: background var(--t-fast);
+}
+
+.subject-sa-reveal:hover {
+    background: rgba(124, 58, 237, 0.15);
+}
+
+.subject-sa-answer {
+    margin-top: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(124, 58, 237, 0.04);
+    border: 1px solid rgba(124, 58, 237, 0.1);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--txt-secondary);
+}
+
+/* ── Study Mode Options ───────────────────────────────────────── */
+.subject-study-options {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+}
+
+.subject-study-options h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.subject-study-options-sub {
+    color: var(--txt-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 32px;
+}
+
+.subject-study-options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    max-width: 400px;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.subject-study-option-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 28px 20px;
+    border-radius: var(--r-lg);
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: all var(--t-base);
+    font-family: var(--font-sans);
+    color: var(--txt-primary);
+}
+
+.subject-study-option-card:hover {
+    background: var(--bg-card-h);
+    border-color: var(--border-glow);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+}
+
+.subject-study-option-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--r-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.subject-study-option-icon.mcq {
+    background: rgba(124, 58, 237, 0.15);
+    color: var(--clr-purple-2);
+    border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+.subject-study-option-icon.short {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60A5FA;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.subject-study-option-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.subject-study-option-desc {
+    font-size: 0.75rem;
+    color: var(--txt-muted);
+    line-height: 1.4;
+}
+
+.subject-study-options-back {
+    background: none;
+    border: none;
+    color: var(--txt-muted);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: var(--font-sans);
+    transition: color var(--t-fast);
+}
+
+.subject-study-options-back:hover {
+    color: var(--txt-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .subject-chat-container {
+        padding: 20px 0 0;
+    }
+
+    .subject-chat-heading {
+        font-size: 1.4rem;
+    }
+
+    .subject-upload-options {
+        flex-direction: column;
+    }
+}
