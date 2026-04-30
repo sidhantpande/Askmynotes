@@ -1,15 +1,21 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
+import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import Link from "next/link";
 
 export default function Hero() {
     const canvasRef = useRef(null);
-    const coverRightRef = useRef(null);
-    const penRef = useRef(null);
-    const shadowRef = useRef(null);
+    const containerRef = useRef(null);
     const [typewriterText, setTypewriterText] = useState("");
-    const [showCaret, setShowCaret] = useState(true);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+    const { scrollYProgress } = useScroll({
+        target: containerRef,
+        offset: ["start start", "end start"]
+    });
+
+    const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+    const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+    const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.9]);
 
     // Typewriter effect
     useEffect(() => {
@@ -21,6 +27,18 @@ export default function Hero() {
             if (i > fullText.length) clearInterval(interval);
         }, 100);
         return () => clearInterval(interval);
+    }, []);
+
+    // Mouse tracking for gradient orbs
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            setMousePos({
+                x: (e.clientX / window.innerWidth) * 100,
+                y: (e.clientY / window.innerHeight) * 100
+            });
+        };
+        window.addEventListener("mousemove", handleMouseMove);
+        return () => window.removeEventListener("mousemove", handleMouseMove);
     }, []);
 
     // Canvas particles
@@ -38,14 +56,14 @@ export default function Hero() {
         resize();
 
         const particles = [];
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < 50; i++) {
             particles.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
                 size: Math.random() * 2 + 0.5,
-                speedX: Math.random() * 0.5 - 0.25,
-                speedY: Math.random() * 0.5 - 0.25,
-                opacity: Math.random() * 0.5 + 0.2,
+                speedX: Math.random() * 0.4 - 0.2,
+                speedY: Math.random() * 0.4 - 0.2,
+                opacity: Math.random() * 0.4 + 0.1,
             });
         }
 
@@ -74,149 +92,179 @@ export default function Hero() {
         };
     }, []);
 
-    // Notebook scroll animation
-    useEffect(() => {
-        const handleScroll = () => {
-            const hero = document.getElementById("hero");
-            if (!hero || !coverRightRef.current) return;
-            const rect = hero.getBoundingClientRect();
-            const heroH = rect.height;
-            const progress = Math.max(0, Math.min(1, -rect.top / (heroH * 0.6)));
-
-            const angle = progress * -65;
-            coverRightRef.current.style.transform = `perspective(600px) rotateY(${angle}deg)`;
-
-            if (penRef.current) {
-                const liftY = progress * -30;
-                const liftX = progress * 20;
-                const penRot = progress * -15;
-                penRef.current.style.transform = `translate(${liftX}px, ${liftY}px) rotate(${penRot}deg)`;
-                penRef.current.style.animation = progress > 0.05 ? "none" : "";
-            }
-
-            if (shadowRef.current) {
-                shadowRef.current.setAttribute("rx", (160 + progress * 20).toString());
-            }
-        };
-
-        window.addEventListener("scroll", handleScroll, { passive: true });
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
-
     return (
-        <section className="hero-section" id="hero">
+        <section className="hero-section" id="hero" ref={containerRef}>
             <canvas ref={canvasRef} className="hero-particles" />
-            <div className="hero-gradient-orb orb-1" />
-            <div className="hero-gradient-orb orb-2" />
-            <div className="hero-gradient-orb orb-3" />
+            
+            <div 
+                className="hero-gradient-orb orb-1" 
+                style={{ 
+                    left: `${mousePos.x * 0.5}%`, 
+                    top: `${mousePos.y * 0.5}%`,
+                    transition: 'all 0.8s cubic-bezier(0.23, 1, 0.32, 1)'
+                }} 
+            />
+            <div 
+                className="hero-gradient-orb orb-2" 
+                style={{ 
+                    right: `${100 - mousePos.x * 0.3}%`, 
+                    bottom: `${100 - mousePos.y * 0.3}%`,
+                    transition: 'all 1s cubic-bezier(0.23, 1, 0.32, 1)'
+                }} 
+            />
 
-            <div className="container hero-inner">
+            <motion.div 
+                style={{ y, opacity, scale }}
+                className="container hero-inner"
+            >
                 <div className="hero-text">
-                    <div className="hero-badge fade-up in">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="hero-badge"
+                    >
                         <span className="badge-dot" />
-                        Subject-Scoped AI is here
-                    </div>
-                    <h1 className="hero-headline fade-up in" style={{ transitionDelay: "100ms" }}>
+                        Institutional Grade AI Tutor
+                    </motion.div>
+                    
+                    <motion.h1 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.1 }}
+                        className="hero-headline"
+                    >
                         Stop asking general AI.<br />
                         Ask your <span className="gradient-text">{typewriterText}</span>
                         <span className="typewriter-caret" />
-                    </h1>
-                    <p className="hero-sub fade-up in" style={{ transitionDelay: "200ms" }}>
-                        The AI tutor that actually knows your curriculum.
-                        <br />No hallucinations. No guessing. Only <strong>your knowledge</strong>.
-                    </p>
-                    <div className="hero-ctas fade-up in" style={{ transitionDelay: "300ms" }}>
+                    </motion.h1>
+
+                    <motion.p 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.2 }}
+                        className="hero-sub"
+                    >
+                        The study assistant that actually knows your specific curriculum.
+                        <br />No hallucinations. No guessing. Only <strong>grounded knowledge</strong>.
+                    </motion.p>
+
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.3 }}
+                        className="hero-ctas"
+                    >
                         <Link href="/auth" className="btn-primary btn-large">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-                            Start Studying Smart
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                            Start Studying Free
                         </Link>
                         <a href="#solution" className="btn-ghost btn-large">
-                            See How It Works
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 17L17 7M17 7H7M17 7v10" /></svg>
+                            Watch Tech Demo
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M7 17L17 7M17 7H7M17 7v10" /></svg>
                         </a>
-                    </div>
+                    </motion.div>
                     <p className="hero-tagline fade-up in" style={{ transitionDelay: "400ms" }}>
                         Trusted by 5,000+ students from top universities.
                     </p>
-
-                    <div className="hero-stats fade-up in" style={{ transitionDelay: "500ms" }}>
-                        <div className="stat">
-                            <span className="stat-num">98%</span>
-                            <span className="stat-label">Accuracy</span>
-                        </div>
-                        <div className="stat-div" />
-                        <div className="stat">
-                            <span className="stat-num">50k+</span>
-                            <span className="stat-label">Notes Uploaded</span>
-                        </div>
-                        <div className="stat-div" />
-                        <div className="stat">
-                            <span className="stat-num">24/7</span>
-                            <span className="stat-label">Tutor Support</span>
-                        </div>
-                    </div>
                 </div>
 
-                <div className="hero-visual fade-up in" style={{ transitionDelay: "400ms" }}>
-                    <div className="notebook-container" id="notebookContainer">
-                        <svg
-                            className="notebook-svg"
-                            id="notebookSvg"
-                            viewBox="0 0 400 320"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
+                <motion.div 
+                    initial={{ opacity: 0, x: 40 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.4, type: "spring", stiffness: 100 }}
+                    className="hero-visual"
+                >
+                    <div className="notebook-container">
+                        <div className="notebook-main">
+                            <div className="notebook-spine" />
+                            <div className="notebook-cover-left">
+                                <div className="nb-content">
+                                    <div className="nb-title">Physics Notes</div>
+                                    <div className="nb-lines">
+                                        {[...Array(6)].map((_, i) => <div key={i} className="nb-line" />)}
+                                    </div>
+                                </div>
+                            </div>
+                            <motion.div 
+                                whileHover={{ rotateY: -30 }}
+                                className="notebook-cover-right"
+                            >
+                                <div className="nb-content">
+                                    <div className="nb-title">Chapter 3 · Forces</div>
+                                    <div className="nb-lines">
+                                        {[...Array(6)].map((_, i) => <div key={i} className="nb-line" />)}
+                                    </div>
+                                    <div className="nb-bookmark" />
+                                </div>
+                            </motion.div>
+                        </div>
+
+                        <motion.div 
+                            animate={{ 
+                                y: [0, -10, 0],
+                            }}
+                            transition={{ 
+                                duration: 4, 
+                                repeat: Infinity,
+                                ease: "easeInOut" 
+                            }}
+                            className="floating-card card-1"
                         >
-                            <ellipse ref={shadowRef} cx="200" cy="305" rx="160" ry="10" fill="rgba(0,0,0,0.15)" className="nb-shadow" />
-                            <rect x="190" y="30" width="20" height="250" rx="2" fill="#5B21B6" className="nb-spine" />
-                            <g className="nb-cover-left" id="nbCoverLeft">
-                                <rect x="30" y="30" width="170" height="250" rx="8" fill="#7C3AED" />
-                                <rect x="38" y="38" width="154" height="234" rx="4" fill="#6D28D9" opacity="0.6" />
-                                <line x1="55" y1="80" x2="165" y2="80" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <line x1="55" y1="100" x2="145" y2="100" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <line x1="55" y1="120" x2="158" y2="120" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <line x1="55" y1="140" x2="135" y2="140" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <line x1="55" y1="160" x2="155" y2="160" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <line x1="55" y1="180" x2="140" y2="180" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <text x="55" y="65" fill="rgba(255,255,255,0.5)" fontFamily="Outfit" fontSize="14" fontWeight="600">Physics Notes</text>
-                            </g>
-                            <g ref={coverRightRef} className="nb-cover-right" id="nbCoverRight">
-                                <rect x="200" y="30" width="170" height="250" rx="8" fill="#8B5CF6" />
-                                <rect x="208" y="38" width="154" height="234" rx="4" fill="#7C3AED" opacity="0.6" />
-                                <line x1="225" y1="80" x2="345" y2="80" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <line x1="225" y1="100" x2="330" y2="100" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <line x1="225" y1="120" x2="340" y2="120" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <line x1="225" y1="140" x2="310" y2="140" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <line x1="225" y1="160" x2="338" y2="160" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <line x1="225" y1="180" x2="325" y2="180" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
-                                <text x="225" y="65" fill="rgba(255,255,255,0.5)" fontFamily="Outfit" fontSize="14" fontWeight="600">Chapter 3 · Forces</text>
-                                <polygon points="340,30 360,30 360,70 350,60 340,70" fill="#FBBF24" />
-                            </g>
-                            <g ref={penRef} className="nb-pen" id="nbPen">
-                                <line x1="310" y1="200" x2="370" y2="80" stroke="#F472B6" strokeWidth="5" strokeLinecap="round" />
-                                <line x1="370" y1="80" x2="375" y2="70" stroke="#1A0A3C" strokeWidth="4" strokeLinecap="round" />
-                                <circle cx="310" cy="200" r="2" fill="#F472B6" />
-                            </g>
-                        </svg>
-                        <div className="floating-card card-1">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2"><path d="M9 12l2 2 4-4" /><circle cx="12" cy="12" r="10" /></svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.5"><path d="M9 12l2 2 4-4" /><circle cx="12" cy="12" r="10" /></svg>
                             <span>Cited answer found!</span>
-                        </div>
-                        <div className="floating-card card-2">
+                        </motion.div>
+                        <motion.div 
+                            animate={{ 
+                                y: [0, 10, 0],
+                            }}
+                            transition={{ 
+                                duration: 5, 
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                                delay: 0.5
+                            }}
+                            className="floating-card card-2"
+                        >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="#FBBF24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                            <span>High Confidence</span>
-                        </div>
-                        <div className="floating-card card-3">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F472B6" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
-                            <span>Physics_notes.pdf · P.12</span>
-                        </div>
+                            <span>98% Confidence</span>
+                        </motion.div>
+                        <motion.div 
+                            animate={{ 
+                                y: [0, -8, 0],
+                            }}
+                            transition={{ 
+                                duration: 4.5, 
+                                repeat: Infinity,
+                                ease: "easeInOut",
+                                delay: 1
+                            }}
+                            className="floating-card card-3"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F472B6" strokeWidth="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+                            <span>Sources: P.12-15</span>
+                        </motion.div>
                     </div>
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
 
-            <div className="scroll-indicator">
-                <span>Scroll Discovery</span>
-                <div className="scroll-dot" />
-            </div>
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                className="scroll-indicator"
+            >
+                <span>Discover More</span>
+                <motion.div 
+                    animate={{ y: [0, 8, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="scroll-dot" 
+                />
+            </motion.div>
         </section>
     );
 }

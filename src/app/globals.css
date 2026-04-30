@@ -12,39 +12,39 @@
   --clr-yellow: #FBBF24;
   --grad-main: linear-gradient(135deg, var(--clr-purple), var(--clr-pink));
   --grad-text: linear-gradient(90deg, #A78BFA, #F472B6);
-  --bg-page: #08050F;
-  --bg-surface: #12091E;
-  --bg-card: rgba(255, 255, 255, 0.035);
-  --bg-card-h: rgba(255, 255, 255, 0.065);
-  --txt-primary: #F1EEF9;
-  --txt-secondary: #9B91BB;
-  --txt-muted: #5C5280;
-  --border-subtle: rgba(255, 255, 255, 0.07);
-  --border-glow: rgba(124, 58, 237, 0.35);
-  --shadow-card: 0 4px 32px rgba(0, 0, 0, 0.45);
-  --shadow-glow: 0 0 40px rgba(124, 58, 237, 0.25);
-  --r-sm: 8px;
-  --r-md: 16px;
-  --r-lg: 24px;
-  --r-xl: 32px;
-  --section-py: 120px;
-  --font-sans: 'Bricolage Grotesque', 'Outfit', 'Inter', sans-serif;
+  --bg-page: #050209;
+  --bg-surface: #0C0518;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card-h: rgba(255, 255, 255, 0.08);
+  --txt-primary: #F8F7FF;
+  --txt-secondary: #A199C2;
+  --txt-muted: #625987;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(124, 58, 237, 0.4);
+  --shadow-card: 0 12px 48px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 60px rgba(124, 58, 237, 0.2);
+  --r-sm: 10px;
+  --r-md: 18px;
+  --r-lg: 28px;
+  --r-xl: 40px;
+  --section-py: 160px;
+  --font-sans: 'Outfit', 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --t-fast: 150ms ease;
-  --t-base: 250ms ease;
-  --t-slow: 450ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-fast: 200ms ease;
+  --t-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-slow: 600ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body.light-mode {
-  --bg-page: #F8F5FF;
-  --bg-surface: #EEE8FF;
-  --bg-card: rgba(255, 255, 255, 0.72);
-  --bg-card-h: rgba(255, 255, 255, 0.9);
-  --txt-primary: #1A0A3C;
-  --txt-secondary: #5A4880;
-  --txt-muted: #9B91BB;
-  --border-subtle: rgba(124, 58, 237, 0.15);
-  --shadow-card: 0 4px 24px rgba(124, 58, 237, 0.10);
+  --bg-page: #FAF9FF;
+  --bg-surface: #F2EEFF;
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --bg-card-h: rgba(255, 255, 255, 0.95);
+  --txt-primary: #12052C;
+  --txt-secondary: #5E4E8A;
+  --txt-muted: #A199C2;
+  --border-subtle: rgba(124, 58, 237, 0.12);
+  --shadow-card: 0 12px 32px rgba(124, 58, 237, 0.08);
 }
 
 /* ── 2. Reset & Base ─────────────────────────────────────────── */

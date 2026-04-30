@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { signOut } from "@/app/auth/actions";
@@ -80,15 +81,13 @@ export default function Navbar() {
             <div className="nav-inner">
                 <Link href="/" className="nav-logo">
                     <div className="logo-icon">
-                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="32" height="32" rx="8" fill="url(#grad-logo)" />
-                            <path d="M9 11C9 10.4477 9.44772 10 10 10H22C22.5523 10 23 10.4477 23 11V21C23 21.5523 22.5523 22 22 22H10C9.44772 22 9 21.5523 9 21V11Z" fill="white" fillOpacity="0.2" />
-                            <path d="M13 14H19" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                            <path d="M13 18H17" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                            <rect width="32" height="32" rx="10" fill="url(#nav-grad-logo)" />
+                            <path d="M10 12h12M10 16h8M10 20h10" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
                             <defs>
-                                <linearGradient id="grad-logo" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                                <linearGradient id="nav-grad-logo" x1="0" y1="0" x2="32" y2="32">
                                     <stop stopColor="#7C3AED" />
-                                    <stop offset="1" stopColor="#F472B6" />
+                                    <stop offset="1" stopColor="#A78BFA" />
                                 </linearGradient>
                             </defs>
                         </svg>
@@ -99,11 +98,9 @@ export default function Navbar() {
                 <div className="nav-links">
                     {[
                         { id: "hero", label: "Home" },
-                        { id: "problem", label: "Problem" },
                         { id: "solution", label: "Solution" },
-                        { id: "chat-preview", label: "Preview" },
-                        { id: "why-different", label: "Why Us" },
-                        { id: "roadmap", label: "Roadmap" },
+                        { id: "why-different", label: "Intelligence" },
+                        { id: "roadmap", label: "Vision" },
                     ].map((link) => (
                         <a
                             key={link.id}
@@ -117,56 +114,59 @@ export default function Navbar() {
 
                 <div className="nav-actions">
                     <button
-                        id="dark-mode-toggle"
                         className="dark-toggle"
-                        aria-label="Toggle dark mode"
+                        aria-label="Toggle theme"
                         onClick={toggleDarkMode}
                     >
-                        <svg className="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
-                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                            <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
-                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                        </svg>
-                        <svg className="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                        </svg>
+                        {isDarkMode ? (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
+                        ) : (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+                        )}
                     </button>
+
+                    <div className="nav-divider" />
 
                     {user ? (
                         <>
-                            <Link href="/dashboard" className="btn-ghost nav-auth-btn">
+                            <Link href="/dashboard" className="nav-link" style={{ fontWeight: 600 }}>
                                 Dashboard
                             </Link>
-                            <button
-                                onClick={async () => {
-                                    await signOut();
-                                }}
-                                className="btn-primary nav-cta"
-                                style={{ border: "none", cursor: "pointer" }}
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => signOut()}
+                                className="btn-primary"
+                                style={{ padding: '8px 20px', fontSize: '0.85rem' }}
                             >
                                 Sign Out
-                            </button>
+                            </motion.button>
                         </>
                     ) : (
                         <>
-                            <Link href="/auth" className="btn-ghost nav-auth-btn">
+                            <Link href="/auth" className="nav-link" style={{ fontWeight: 600 }}>
                                 Sign In
                             </Link>
-                            <Link href="/auth#signup" className="btn-primary nav-cta">
-                                Sign Up
-                            </Link>
+                            <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                <Link href="/auth#signup" className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.85rem' }}>
+                                    Join Now
+                                </Link>
+                            </motion.div>
                         </>
                     )}
                 </div>
 
                 <button
                     className="mobile-menu-btn"
-                    id="mobileMenuBtn"
-                    aria-label="Open menu"
                     onClick={toggleMobileMenu}
                 >
-                    <span></span><span></span><span></span>
+                    <div className={`hamburger ${mobileMenuOpen ? 'active' : ''}`}>
+                        <span />
+                        <span />
+                    </div>
                 </button>
             </div>
 

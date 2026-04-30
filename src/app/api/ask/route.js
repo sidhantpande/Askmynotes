@@ -1,130 +1,96 @@
 import { NextResponse } from "next/server";
 import { getVectorStore } from "@/lib/vectorStore";
-import { getLLM } from "@/lib/gemini";
+import { safeInvoke } from "@/lib/ai";
 import { createClient } from "@/utils/supabase/server";
 
-const SIMILARITY_THRESHOLD = 0.30;
-
-function calculateConfidence(scores) {
-    if (!scores || scores.length === 0) return "Low";
-    const maxScore = Math.max(...scores);
-    if (maxScore > 0.50) return "High";
-    if (maxScore >= 0.40) return "Medium";
-    return "Low";
-}
+// 🚀 Advanced RAG Settings
+const RETRIEVAL_COUNT = 10; // Increased for better context
+const SIMILARITY_THRESHOLD = 0.15; // Balanced threshold
 
 export async function POST(request) {
     try {
-        // Auth gate
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
-            return NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            );
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const userId = user.id;
-        const { question, subject } = await request.json();
+        let { question, subject } = await request.json();
 
         if (!question || !subject) {
-            return NextResponse.json(
-                { error: "Missing required fields: question, subject" },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        // 🧠 1. Query Optimization (Rewrite vague questions)
+        let optimizedQuery = question;
+        if (question.length < 25) {
+            optimizedQuery = `Explain clearly and provide detail about: ${question}`;
         }
 
         const vectorStore = await getVectorStore();
 
-        // Chroma-native filter by userId + subject for isolation
+        // 🧠 2. Deep Retrieval
         const resultsWithScores = await vectorStore.similaritySearchWithScore(
-            question,
-            5,
-            { $and: [{ userId }, { subject }] }
+            optimizedQuery,
+            RETRIEVAL_COUNT,
+            { userId, subject }
         );
 
-        if (!resultsWithScores || resultsWithScores.length === 0) {
+        // 🧠 3. Filtering & Rich Context Assembly
+        const contextDocs = resultsWithScores
+            .filter(([_, score]) => (1 - score) >= SIMILARITY_THRESHOLD)
+            .map(([doc]) => doc);
+
+        if (contextDocs.length === 0) {
             return NextResponse.json({
-                answer: `Not found in your notes for ${subject}`,
-                supportingSnippets: [],
-                citations: [],
-                confidence: "Low",
+                answer: "I couldn't find specific information in your notes to answer this. Could you provide more detail or upload relevant material?",
+                sources: [],
+                confidence: 0
             });
         }
 
-        // Chroma returns distances (lower = better). Convert to similarity.
-        const docsWithSimilarity = resultsWithScores.map(([doc, distance]) => [
-            doc,
-            1 - distance,
-        ]);
-
-        // Apply similarity threshold
-        const filteredDocs = docsWithSimilarity.filter(
-            ([, similarity]) => similarity >= SIMILARITY_THRESHOLD
-        );
-
-        if (filteredDocs.length === 0) {
-            return NextResponse.json({
-                answer: `Not found in your notes for ${subject}`,
-                supportingSnippets: [],
-                citations: [],
-                confidence: "Low",
-            });
-        }
-
-        const context = filteredDocs
-            .map(
-                ([doc], i) =>
-                    `[Source ${i + 1} — File: ${doc.metadata.fileName}, Chunk: ${doc.metadata.chunkId}]\n${doc.pageContent}`
-            )
+        // Format context with clear source identifiers
+        const context = contextDocs
+            .map((doc, i) => `[Source ${i + 1} | Page ${doc.metadata.pageNumber || '?'}]\n${doc.pageContent}`)
             .join("\n\n");
 
-        const citations = filteredDocs.map(
-            ([doc]) =>
-                `File: ${doc.metadata.fileName}, Chunk: ${doc.metadata.chunkId}`
-        );
+        // 🧠 4. Balanced Generation Prompt
+        const finalPrompt = `You are a helpful and professional study assistant for the subject: ${subject}.
 
-        const supportingSnippets = filteredDocs
-            .slice(0, 3)
-            .map(([doc]) => doc.pageContent.substring(0, 200));
+        RULES:
+        1. Answer using the provided context. 
+        2. If the answer is explicitly found → Provide a clear, detailed explanation.
+        3. If the answer is partially related → Explain the concepts found and how they might apply.
+        4. If the answer is completely absent → say "Not in document".
+        5. Use bullet points or numbered lists for complex topics.
 
-        const prompt = `You are a strict academic assistant. Answer the student's question using ONLY the provided context from their notes. 
+        CONTEXT:
+        ${context}
 
-RULES:
-- Use ONLY the context below. Do NOT use any prior knowledge.
-- Do NOT guess or infer beyond what is explicitly stated.
-- If the answer is not found in the context, respond exactly with: "Not found in your notes for ${subject}"
-- Be concise and academic in tone.
+        QUESTION:
+        ${question}
 
-CONTEXT:
-${context}
+        ANSWER:`;
 
-QUESTION: ${question}
+        const answer = await safeInvoke(finalPrompt);
 
-ANSWER:`;
-
-        const llm = getLLM();
-        const response = await llm.invoke(prompt);
-        const answer = response.content;
-
-        const similarities = filteredDocs.map(([, sim]) => sim);
-        const confidence = answer.includes("Not found in your notes")
-            ? "Low"
-            : calculateConfidence(similarities);
-
+        // 🧠 5. Structured Response
         return NextResponse.json({
-            answer,
-            supportingSnippets,
-            citations,
-            confidence,
+            answer: answer.trim(),
+            sources: contextDocs.map(d => ({
+                page: d.metadata.pageNumber,
+                file: d.metadata.fileName
+            })).filter((v, i, a) => a.findIndex(t => (t.page === v.page)) === i), // Unique pages
+            confidence: resultsWithScores[0][1] > 0.8 ? 0.9 : 0.7
         });
+
     } catch (error) {
-        console.error("Ask error:", error);
-        return NextResponse.json(
-            { error: "Failed to process question" },
-            { status: 500 }
-        );
+        console.error("❌ Ask API Error:", error);
+        return NextResponse.json({ 
+            error: "Failed to generate answer", 
+            details: error.message 
+        }, { status: 500 });
     }
 }

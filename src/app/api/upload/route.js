@@ -3,12 +3,15 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { Document } from "@langchain/core/documents";
 import { addDocuments } from "@/lib/vectorStore";
 import { createClient } from "@/utils/supabase/server";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.js";
 
+// 🚀 Enforce Node.js runtime for stable PDF processing
+export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(request) {
   try {
-    // 🔐 Auth check
+    // 🔐 Authentication Check
     const supabase = await createClient();
     const {
       data: { user },
@@ -16,88 +19,100 @@ export async function POST(request) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = user.id;
 
-    // 📦 Get form data
+    // 📦 Request Data Extraction
     const formData = await request.formData();
     const file = formData.get("file");
     const subject = formData.get("subject");
 
     if (!file || !subject) {
-      return NextResponse.json(
-        { error: "Missing required fields: file, subject" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     const fileName = file.name;
-    let text = "";
+    let processedChunks = [];
 
-    // 📄 Handle PDF correctly (NO static import)
+    // 📄 PDF Processing
     if (fileName.endsWith(".pdf")) {
- const pdfModule = await import("pdf-parse");
-const pdf = pdfModule.default || pdfModule;
+      pdfjsLib.GlobalWorkerOptions.workerPort = null;
+      const buffer = Buffer.from(await file.arrayBuffer());
 
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      const loadingTask = pdfjsLib.getDocument({
+        data: new Uint8Array(buffer),
+        disableWorker: true,
+        useWorkerFetch: false,
+        isEvalSupported: false,
+      });
 
-      const pdfData = await pdf(buffer);
-      text = pdfData.text;
+      const pdf = await loadingTask.promise;
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(item => item.str).join(" ");
+
+        if (pageText.trim()) {
+          // 🧠 Semantic Splitting: Paragraph-aware with sentence boundary preservation
+          const splitter = new RecursiveCharacterTextSplitter({
+            chunkSize: 800,
+            chunkOverlap: 150,
+            separators: ["\n\n", "\n", ". ", " ", ""],
+          });
+
+          const pageChunks = await splitter.splitText(pageText);
+
+          pageChunks.forEach((chunk, chunkIdx) => {
+            processedChunks.push(new Document({
+              pageContent: chunk,
+              metadata: {
+                subject,
+                userId,
+                fileName,
+                pageNumber: i,
+                chunkId: `${fileName}_p${i}_c${chunkIdx}`,
+              }
+            }));
+          });
+        }
+        page.cleanup();
+      }
+      await pdf.destroy();
     } else {
       // 📄 Handle TXT
-      text = await file.text();
+      const text = await file.text();
+      const splitter = new RecursiveCharacterTextSplitter({
+        chunkSize: 800,
+        chunkOverlap: 150,
+        separators: ["\n\n", "\n", ". ", " ", ""],
+      });
+      const rawChunks = await splitter.splitText(text);
+      processedChunks = rawChunks.map((chunk, index) => new Document({
+        pageContent: chunk,
+        metadata: { subject, userId, fileName, chunkId: `${fileName}_c${index}` }
+      }));
     }
 
-    // ❌ No text extracted
-    if (!text.trim()) {
-      return NextResponse.json(
-        { error: "Could not extract any text from the file" },
-        { status: 400 }
-      );
+    // 🧹 Sanitation & Validation
+    processedChunks = processedChunks.filter(doc => doc.pageContent.trim().length > 20);
+
+    if (processedChunks.length === 0) {
+      return NextResponse.json({ error: "No readable content found. Check if the PDF is scanned." }, { status: 400 });
     }
 
-    // ✂️ Split text into chunks
-    const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 500,
-      chunkOverlap: 50,
-    });
-
-    const rawChunks = await splitter.splitText(text);
-
-    // 📚 Convert to Documents
-    const documents = rawChunks.map(
-      (chunk, index) =>
-        new Document({
-          pageContent: chunk,
-          metadata: {
-            subject,
-            userId,
-            fileName,
-            chunkId: `${fileName}_chunk_${index}`,
-          },
-        })
-    );
-
-    // 🧠 Store in Chroma
-    await addDocuments(documents);
+    // 🧠 Add to Vector Store
+    await addDocuments(processedChunks);
 
     return NextResponse.json({
       success: true,
-      message: `Uploaded ${documents.length} chunks`,
-      chunksCount: documents.length,
+      message: `Processed into ${processedChunks.length} semantic chunks`,
     });
+
   } catch (error) {
     console.error("Upload error:", error);
-
-    return NextResponse.json(
-      { error: `Upload failed: ${error.message}` },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: `Upload failed: ${error.message}` }, { status: 500 });
   }
 }
