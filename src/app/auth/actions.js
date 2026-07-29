@@ -29,7 +29,7 @@ export async function signUp(formData) {
     const firstName = formData.get("firstName");
     const lastName = formData.get("lastName");
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -44,7 +44,11 @@ export async function signUp(formData) {
         return { error: error.message };
     }
 
-    return { success: "Check your email for the confirmation link!" };
+    if (data?.session) {
+        redirect("/dashboard");
+    }
+
+    return { success: "Account created. You can sign in right away." };
 }
 
 export async function signOut() {

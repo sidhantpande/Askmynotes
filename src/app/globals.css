@@ -1771,6 +1771,7 @@ body.light-mode .floating-card {
 }
 
 .modal-box {
+  position: relative;
   background: #12091E;
   border: 1px solid var(--border-subtle);
   border-radius: var(--r-xl);

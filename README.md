@@ -108,7 +108,7 @@ src/
 - **Node.js** ≥ 18
 - **Python** ≥ 3.8 (for ChromaDB)
 - A **Google AI Studio** account ([aistudio.google.com](https://aistudio.google.com)) for the Gemini API key
-- A **Supabase** project ([supabase.com](https://supabase.com)) for authentication
+- **Supabase CLI** for local auth and database via Docker
 
 ### 1. Clone the repo
 
@@ -136,23 +136,29 @@ pip install chromadb
 Create a `.env.local` file in the project root:
 
 ```env
-# Supabase (get these from your Supabase project → Settings → API)
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+# Local Supabase: run `supabase start` and paste the values from `supabase status`
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_local_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_local_supabase_service_role_key
 
-# Google Gemini (get from https://aistudio.google.com/apikey)
-GEMINI_API_KEY=your_gemini_api_key
+# Choose one AI provider
+AI_PROVIDER=openai
+OPENAI_API_KEY=your_openai_api_key
 
-# ChromaDB
-CHROMA_URL=http://localhost:8000
+# Or
+# AI_PROVIDER=gemini
+# GEMINI_API_KEY=your_gemini_api_key
+
+# ChromaDB persistence
+CHROMA_DIR=./chroma_store
 ```
 
-### 5. Set up Supabase Auth
+### 5. Start local Supabase
 
-1. Go to your Supabase project dashboard
-2. Navigate to **Authentication → Providers**
-3. Ensure **Email** provider is enabled
-4. (Optional) Disable email confirmation for dev: **Authentication → Settings → Confirm Email** → toggle off
+1. Install and start Docker Desktop
+2. Run `npm run bootstrap:local`
+3. Copy the `API URL`, `anon key`, and `service_role key` from `supabase status`
+4. Paste them into `.env.local`
 
 ### 6. Start ChromaDB
 

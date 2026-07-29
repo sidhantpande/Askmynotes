@@ -5,14 +5,91 @@ import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
+import { getSafeUser } from '@/utils/supabase/auth';
 import './subject.css';
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function renderRichText(text) {
+    const input = String(text || '').trim();
+    if (!input) return null;
+
+    const lines = input.split(/\r?\n/);
+    const blocks = [];
+    let currentList = [];
+
+    const flushList = () => {
+        if (!currentList.length) return;
+        blocks.push(`<ul class="subject-markdown-list">${currentList.map((item) => `<li>${item}</li>`).join('')}</ul>`);
+        currentList = [];
+    };
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) {
+            flushList();
+            continue;
+        }
+
+        const heading = line.match(/^(#{1,3})\s+(.*)$/);
+        if (heading) {
+            flushList();
+            const level = heading[1].length;
+            const content = heading[2];
+            blocks.push(`<h${level} class="subject-markdown-h${level}">${formatInlineMarkdown(content)}</h${level}>`);
+            continue;
+        }
+
+        const bullet = line.match(/^[-*•]\s+(.*)$/);
+        if (bullet) {
+            currentList.push(formatInlineMarkdown(bullet[1]));
+            continue;
+        }
+
+        const numbered = line.match(/^\d+\.\s+(.*)$/);
+        if (numbered) {
+            currentList.push(formatInlineMarkdown(numbered[1]));
+            continue;
+        }
+
+        flushList();
+        blocks.push(`<p class="subject-markdown-p">${formatInlineMarkdown(line)}</p>`);
+    }
+
+    flushList();
+    return { __html: blocks.join('') };
+}
+
+function formatInlineMarkdown(text) {
+    return escapeHtml(text)
+        .replace(/\\\((.*?)\\\)/g, '$1')
+        .replace(/\\\[(.*?)\\\]/g, '$1')
+        .replace(/\$(.*?)\$/g, '$1')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code>$1</code>');
+}
+
+function cleanSnippet(text) {
+    return String(text || '')
+        .replace(/\\\((.*?)\\\)/g, '$1')
+        .replace(/\\\[(.*?)\\\]/g, '$1')
+        .replace(/\$(.*?)\$/g, '$1')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
 
 export default function SubjectPage() {
     const params = useParams();
     const router = useRouter();
     const subjectName = decodeURIComponent(params.id || 'Subject');
-    const supabase = createClient();
-
     const [user, setUser] = useState(null);
     const [materialUploaded, setMaterialUploaded] = useState(false);
     const [showUploadOptions, setShowUploadOptions] = useState(false);
@@ -26,6 +103,7 @@ export default function SubjectPage() {
     const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
+    const [askError, setAskError] = useState('');
 
     // Study mode state
     const [studyData, setStudyData] = useState(null);
@@ -33,6 +111,7 @@ export default function SubjectPage() {
     const [showStudyMode, setShowStudyMode] = useState(false);
     const [showStudyOptions, setShowStudyOptions] = useState(false);
     const [studyType, setStudyType] = useState(null); // 'mcq' or 'short'
+    const [studyError, setStudyError] = useState('');
 
     const messagesEndRef = useRef(null);
     const textareaRef = useRef(null);
@@ -41,7 +120,8 @@ export default function SubjectPage() {
     // Auth check and Restore persisted chat on mount
     useEffect(() => {
         const init = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const supabase = createClient();
+            const { user } = await getSafeUser();
             if (!user) {
                 router.push('/auth');
                 return;
@@ -64,12 +144,13 @@ export default function SubjectPage() {
             }
         };
         init();
-    }, [subjectName]);
+    }, [router, subjectName]);
 
     // Persist messages whenever they change
     useEffect(() => {
         const saveChat = async () => {
             if (messages.length > 0 && user) {
+                const supabase = createClient();
                 await supabase
                     .from('chats')
                     .upsert({
@@ -109,13 +190,14 @@ export default function SubjectPage() {
             setMaterialType('text');
             setMaterialUploaded(true);
             setShowTextModal(false);
+            setAskError('');
             setMessages([{
                 id: 1,
                 role: 'ai',
-                text: `I've processed your text notes for **${subjectName}** (${data.chunksCount} chunks). I'm now trained on your material and ready to answer questions. Ask me anything!`
+                text: `I've processed your text notes for **${subjectName}** (${data.chunksCount} chunks). I'm ready to answer questions and study prompts from this material.`
             }]);
         } catch (err) {
-            setUploadError(err.message);
+            setUploadError(err.message || 'Upload failed');
         } finally {
             setIsUploading(false);
         }
@@ -141,13 +223,14 @@ export default function SubjectPage() {
 
             setMaterialType('pdf');
             setMaterialUploaded(true);
+            setAskError('');
             setMessages([{
                 id: 1,
                 role: 'ai',
-                text: `I've processed your file **"${file.name}"** for **${subjectName}** (${data.chunksCount} chunks). I'm now trained on your material and ready to answer questions. Ask me anything!`
+                text: `I've processed **"${file.name}"** for **${subjectName}** (${data.chunksCount} chunks). You can now ask questions or switch to study mode.`
             }]);
         } catch (err) {
-            setUploadError(err.message);
+            setUploadError(err.message || 'Upload failed');
             setShowUploadOptions(true);
         } finally {
             setIsUploading(false);
@@ -159,6 +242,7 @@ export default function SubjectPage() {
     const handleSend = async () => {
         if (!prompt.trim() || isLoading) return;
         const currentPrompt = prompt;
+        setAskError('');
         const userMsg = { id: Date.now(), role: 'user', text: currentPrompt };
         setMessages((prev) => [...prev, userMsg]);
         setPrompt('');
@@ -179,7 +263,7 @@ export default function SubjectPage() {
         setMessages((prev) => [...prev, aiMsg]);
 
         try {
-            const res = await fetch('/api/ask', {
+            const res = await fetch('/api/ask?stream=1', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ question: currentPrompt, subject: subjectName }),
@@ -187,18 +271,20 @@ export default function SubjectPage() {
 
             if (!res.ok) throw new Error('Failed to get answer');
 
-            const data = await res.json();
-            
+            const data = await readAskStream(res);
             setMessages((prev) => prev.map(m => 
                 m.id === aiMsgId ? { 
                     ...m, 
-                    text: data.answer, 
+                    text: data.answer || 'No response returned.',
                     sources: data.sources || [],
+                    supportingSnippets: data.supportingSnippets || [],
                     confidence: data.confidence,
+                    confidenceScore: data.confidenceScore,
                     isLoading: false 
                 } : m
             ));
         } catch (err) {
+            setAskError(err.message || 'Failed to get answer');
             setMessages((prev) => prev.map(m => 
                 m.id === aiMsgId ? { ...m, text: `Sorry, something went wrong: ${err.message}`, isLoading: false } : m
             ));
@@ -214,6 +300,7 @@ export default function SubjectPage() {
         setShowStudyMode(true);
         setIsStudyLoading(true);
         setStudyData(null);
+        setStudyError('');
 
         fetch('/api/study', {
             method: 'POST',
@@ -226,6 +313,7 @@ export default function SubjectPage() {
                 setStudyData(data);
             })
             .catch(err => {
+                setStudyError(err.message || 'Failed to generate study material');
                 setStudyData({ error: err.message });
             })
             .finally(() => {
@@ -245,6 +333,58 @@ export default function SubjectPage() {
             textareaRef.current.style.height = 'auto';
             textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
         }
+    };
+
+    const readAskStream = async (response) => {
+        const meta = { answer: '', sources: [], supportingSnippets: [], confidence: 'Low', confidenceScore: 0 };
+        const reader = response.body?.getReader();
+
+        if (!reader) {
+            return response.json();
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        const parseBlock = (block) => {
+            const lines = block.split('\n');
+            const event = lines.find((line) => line.startsWith('event: '))?.slice(7)?.trim() || 'message';
+            const dataLine = lines.find((line) => line.startsWith('data: '))?.slice(6) || '{}';
+            const data = JSON.parse(dataLine);
+
+            if (event === 'meta') {
+                meta.sources = data.sources || [];
+                meta.confidence = data.confidence || meta.confidence;
+                meta.confidenceScore = data.confidenceScore ?? meta.confidenceScore;
+            }
+
+            if (event === 'delta') {
+                meta.answer += data.text || '';
+            }
+
+            if (event === 'done') {
+                meta.answer = data.answer || meta.answer;
+                meta.sources = data.sources || meta.sources;
+                meta.supportingSnippets = data.supportingSnippets || meta.supportingSnippets;
+                meta.confidence = data.confidence || meta.confidence;
+                meta.confidenceScore = data.confidenceScore ?? meta.confidenceScore;
+            }
+        };
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const chunks = buffer.split('\n\n');
+            buffer = chunks.pop() || '';
+            chunks.filter(Boolean).forEach(parseBlock);
+        }
+
+        if (buffer.trim()) {
+            parseBlock(buffer);
+        }
+
+        return meta;
     };
 
     const toggleRecording = () => {
@@ -399,10 +539,10 @@ export default function SubjectPage() {
                                     >
                                         <div className="subject-chat-sparkle">
                                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                                            AI Study Assistant
+                                            Your study tutor
                                         </div>
-                                        <h1 className="subject-chat-heading">Ready for {subjectName}</h1>
-                                        <p className="subject-chat-subtext">Ask anything about your notes or generate practice questions.</p>
+                                        <h1 className="subject-chat-heading">Let’s work through {subjectName}</h1>
+                                        <p className="subject-chat-subtext">Ask a question, ask for a summary, or let me turn your notes into something easier to revise.</p>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -416,19 +556,26 @@ export default function SubjectPage() {
                                 >
                                     <div className="subject-study-header">
                                         <h2>📚 {studyType === 'mcq' ? 'Practice MCQs' : 'Short Q&A'}</h2>
-                                        <button className="subject-study-close" onClick={() => setShowStudyMode(false)}>✕</button>
+                                        <button type="button" className="subject-study-close" onClick={() => setShowStudyMode(false)}>✕</button>
                                     </div>
                                     {isStudyLoading ? (
                                         <div className="subject-study-loading">
                                             <div className="subject-upload-spinner"></div>
-                                            <p>Analyzing notes...</p>
+                                            <p>I’m reading through your notes and shaping {studyType === 'mcq' ? 'practice questions' : 'quick revision prompts'} now...</p>
                                         </div>
-                                    ) : studyData?.error ? (
-                                        <div className="subject-upload-error">{studyData.error}</div>
+                                    ) : studyError || studyData?.error ? (
+                                        <div className="subject-empty-state">
+                                            <div className="subject-empty-icon">⚠️</div>
+                                            <h3>That one didn’t land cleanly</h3>
+                                            <p>{studyError || studyData?.error}</p>
+                                            <button type="button" className="dash-btn-submit" onClick={() => handleStudyMode(studyType || 'flashcards')}>Let me try again</button>
+                                        </div>
                                     ) : (
                                         <div className="subject-study-content">
-                                            {studyData?.mcqs?.map((mcq, i) => <MCQCard key={i} mcq={mcq} index={i} />)}
-                                            {studyData?.shortQuestions?.map((sq, i) => <ShortAnswerCard key={i} sq={sq} index={i} />)}
+                                            {Array.isArray(studyData?.mcqs) && studyData.mcqs.map((mcq, i) => <MCQCard key={i} mcq={mcq} index={i} />)}
+                                            {Array.isArray(studyData?.shortQuestions) && studyData.shortQuestions.map((sq, i) => <ShortAnswerCard key={i} sq={sq} index={i} />)}
+                                            {Array.isArray(studyData) && studyType === 'flashcards' && studyData.map((card, i) => <FlashcardCard key={i} card={card} index={i} />)}
+                                            {!Array.isArray(studyData) && Array.isArray(studyData?.flashcards) && studyData.flashcards.map((card, i) => <FlashcardCard key={i} card={card} index={i} />)}
                                         </div>
                                     )}
                                 </motion.div>
@@ -446,18 +593,42 @@ export default function SubjectPage() {
                                             {msg.role === 'ai' ? '✦' : 'U'}
                                         </div>
                                         <div className="subject-msg-content">
-                                            <div className="subject-msg-bubble">{msg.text}</div>
+                                            {msg.role === 'ai' && (
+                                                <div className="subject-ai-intro">
+                                                    <span className="subject-ai-tag">Tutor</span>
+                                                    <span>{msg.confidence ? `${msg.confidence} confidence` : 'Grounded in your notes'}</span>
+                                                </div>
+                                            )}
+                                            <div
+                                                className={`subject-msg-bubble ${msg.role === 'ai' ? 'rich' : ''}`}
+                                                dangerouslySetInnerHTML={msg.role === 'ai' ? renderRichText(msg.text) : undefined}
+                                            >
+                                                {msg.role !== 'ai' ? msg.text : null}
+                                            </div>
+                                            {msg.role === 'ai' && isLoading && msg.isLoading && (
+                                                <div className="subject-loading-inline">I’m pulling the relevant bits from your notes...</div>
+                                            )}
                                             {msg.confidence && (
                                                 <span className="subject-confidence-badge" style={getConfidenceStyle(msg.confidence)}>
                                                     {msg.confidence} Confidence
                                                 </span>
                                             )}
                                             {msg.sources?.length > 0 && (
-                                                <div className="subject-citations">
+                                                <div className="subject-source-grid">
                                                     {msg.sources.map((s, i) => (
-                                                        <span key={i} className="subject-citation-pill">
-                                                            Page {s.page}
-                                                        </span>
+                                                        <div key={i} className="subject-source-card">
+                                                            <div className="subject-source-card-head">
+                                                                <div>
+                                                                    <div className="subject-source-file">{s.file}</div>
+                                                                    <div className="subject-source-meta">
+                                                                        <span>Page {s.page ?? '—'}</span>
+                                                                        {typeof s.score === 'number' && <span>{(s.score * 100).toFixed(0)}% match</span>}
+                                                                    </div>
+                                                                </div>
+                                                                <span className="subject-source-chip">Evidence</span>
+                                                            </div>
+                                                            {s.snippet && <p className="subject-source-snippet">{cleanSnippet(s.snippet)}</p>}
+                                                        </div>
                                                     ))}
                                                 </div>
                                             )}
@@ -476,6 +647,7 @@ export default function SubjectPage() {
                                             <span className="subject-loading-dot"></span>
                                             <span className="subject-loading-dot"></span>
                                             <span className="subject-loading-dot"></span>
+                                            <span className="subject-loading-copy">Thinking this through...</span>
                                         </div>
                                     </motion.div>
                                 )}
@@ -483,19 +655,27 @@ export default function SubjectPage() {
                             </div>
 
                             <AnimatePresence>
-                                {messages.length <= 1 && !showStudyMode && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 10 }}
-                                        className="subject-suggestions"
-                                    >
-                                        <button className="subject-suggestion-chip" onClick={() => handleSuggestion('Summarize key concepts')}>📝 Summarize</button>
-                                        <button className="subject-suggestion-chip" onClick={() => handleSuggestion('Generate practice MCQs')}>❓ Practice MCQs</button>
-                                        <button className="subject-suggestion-chip" onClick={() => handleSuggestion('What are the main topics?')}>💡 Key Topics</button>
-                                    </motion.div>
-                                )}
+                            {messages.length <= 1 && !showStudyMode && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="subject-suggestions"
+                                >
+                                    <button type="button" className="subject-suggestion-chip" onClick={() => handleSuggestion('Give me the big ideas in these notes')}>Start with the big ideas</button>
+                                    <button type="button" className="subject-suggestion-chip" onClick={() => handleSuggestion('Quiz me with a few practice MCQs')}>Test me with a few questions</button>
+                                    <button type="button" className="subject-suggestion-chip" onClick={() => handleSuggestion('What should I revise first?')}>What should I revise first?</button>
+                                </motion.div>
+                            )}
                             </AnimatePresence>
+
+                            {(askError || uploadError) && (
+                                <div className="subject-empty-state" style={{ margin: '0 0 16px' }}>
+                                    <div className="subject-empty-icon">!</div>
+                                    <h3>Something needs attention</h3>
+                                    <p>{askError || uploadError}</p>
+                                </div>
+                            )}
 
                             {/* Prompt bar */}
                             <div className="subject-prompt-wrap">
@@ -529,6 +709,7 @@ export default function SubjectPage() {
                                                     whileTap={{ scale: 0.9 }}
                                                     className={`subject-prompt-mic ${isRecording ? 'recording' : ''}`} 
                                                     onClick={toggleRecording}
+                                                    type="button"
                                                 >
                                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
                                                 </motion.button>
@@ -538,6 +719,7 @@ export default function SubjectPage() {
                                                     className="subject-prompt-send" 
                                                     onClick={handleSend} 
                                                     disabled={!prompt.trim() || isLoading}
+                                                    type="button"
                                                 >
                                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
                                                 </motion.button>
@@ -555,8 +737,9 @@ export default function SubjectPage() {
                                                 className="subject-study-quick-options"
                                                 style={{ marginTop: '12px', display: 'flex', gap: '8px', justifyContent: 'center' }}
                                             >
-                                                <button className="subject-suggestion-chip" onClick={() => handleStudyMode('mcq')}>Generate 5 MCQs</button>
-                                                <button className="subject-suggestion-chip" onClick={() => handleStudyMode('short')}>Generate 3 Short Q&A</button>
+                                                <button type="button" className="subject-suggestion-chip" onClick={() => handleStudyMode('flashcards')}>Make flashcards</button>
+                                                <button type="button" className="subject-suggestion-chip" onClick={() => handleStudyMode('mcq')}>Give me a quiz</button>
+                                                <button type="button" className="subject-suggestion-chip" onClick={() => handleStudyMode('short')}>Short revision</button>
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
@@ -599,15 +782,17 @@ function SnippetsCollapsible({ snippets }) {
     const [open, setOpen] = useState(false);
     return (
         <div className="subject-snippets-wrap">
-            <button className="subject-snippets-toggle" onClick={() => setOpen(!open)}>
+            <button type="button" className="subject-snippets-toggle" onClick={() => setOpen(!open)}>
                 {open ? '▾' : '▸'} Supporting Snippets ({snippets.length})
             </button>
             {open && (
                 <div className="subject-snippets-list">
                     {snippets.map((s, i) => (
                         <div key={i} className="subject-snippet-item">
-                            <span className="subject-snippet-label">Snippet {i + 1}</span>
-                            <p>{s}</p>
+                            <span className="subject-snippet-label">
+                                Snippet {i + 1}{s.file ? ` • ${s.file}` : ''}{s.page ? ` • Page ${s.page}` : ''}
+                            </span>
+                            <p>{typeof s === 'string' ? s : s.snippet}</p>
                         </div>
                     ))}
                 </div>
@@ -646,7 +831,8 @@ function MCQCard({ mcq, index }) {
             </div>
             {revealed && (
                 <div className="subject-mcq-explanation">
-                    <strong>Explanation:</strong> {mcq.explanation}
+                    <strong>Explanation:</strong>
+                    <div className="subject-markdown-body" dangerouslySetInnerHTML={renderRichText(mcq.explanation)} />
                     <div className="subject-mcq-citation">📄 {mcq.citation}</div>
                 </div>
             )}
@@ -666,8 +852,28 @@ function ShortAnswerCard({ sq, index }) {
             </button>
             {revealed && (
                 <div className="subject-sa-answer">
-                    <p>{sq.answer}</p>
+                    <div className="subject-markdown-body" dangerouslySetInnerHTML={renderRichText(sq.answer)} />
                     <div className="subject-mcq-citation">📄 {sq.citation}</div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function FlashcardCard({ card, index }) {
+    const [revealed, setRevealed] = useState(false);
+
+    return (
+        <div className="study-item-card">
+            <div className="subject-snippet-label">Flashcard {index + 1}</div>
+            <p style={{ fontWeight: 600, marginBottom: '16px' }}>{card.question}</p>
+            <button type="button" className="subject-sa-reveal" onClick={() => setRevealed(!revealed)}>
+                {revealed ? 'Hide Answer' : 'Reveal Answer'}
+            </button>
+            {revealed && (
+                <div className="subject-sa-answer">
+                    <div className="subject-markdown-body" dangerouslySetInnerHTML={renderRichText(card.answer)} />
+                    {card.citation && <div className="subject-mcq-citation">📄 {card.citation}</div>}
                 </div>
             )}
         </div>
@@ -679,10 +885,12 @@ function StudyCenter({ subject }) {
     const [type, setType] = useState(null); // 'flashcards' | 'quiz'
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const generate = async (mode) => {
         setLoading(true);
         setType(mode);
+        setError('');
         try {
             const res = await fetch('/api/study', {
                 method: 'POST',
@@ -690,9 +898,10 @@ function StudyCenter({ subject }) {
                 body: JSON.stringify({ subject, type: mode })
             });
             const json = await res.json();
+            if (!res.ok) throw new Error(json.error || 'Failed to generate study material');
             if (json.success) setData(json.data);
         } catch (e) {
-            console.error(e);
+            setError(e.message || 'Failed to generate study material');
         } finally {
             setLoading(false);
         }
@@ -738,6 +947,15 @@ function StudyCenter({ subject }) {
                 </div>
             )}
 
+            {error && !loading && (
+                <div className="subject-empty-state" style={{ marginTop: '48px' }}>
+                    <div className="subject-empty-icon">⚠️</div>
+                    <h3>Study mode is having a rough moment</h3>
+                    <p>{error}</p>
+                    <button type="button" className="dash-btn-submit" onClick={() => generate(type || 'flashcards')}>Retry</button>
+                </div>
+            )}
+
             {data && (
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }}
@@ -745,31 +963,40 @@ function StudyCenter({ subject }) {
                     className="study-card-grid"
                 >
                     {type === 'flashcards' ? (
-                        data.map((item, i) => (
+                        Array.isArray(data) && data.map((item, i) => <FlashcardCard key={i} card={item} index={i} />)
+                    ) : type === 'short' ? (
+                        (data.shortQuestions || []).map((item, i) => (
                             <div key={i} className="study-item-card">
-                                <div className="subject-snippet-label">Question</div>
+                                <div className="subject-snippet-label">Short Answer</div>
                                 <p style={{ fontWeight: 600, marginBottom: '16px' }}>{item.question}</p>
                                 <div className="subject-snippet-label" style={{ color: '#10B981' }}>Answer</div>
-                                <p style={{ fontSize: '0.9rem', color: 'var(--txt-secondary)' }}>{item.answer}</p>
+                                <div className="subject-markdown-body" style={{ fontSize: '0.9rem', color: 'var(--txt-secondary)' }} dangerouslySetInnerHTML={renderRichText(item.answer)} />
+                                {item.citation && <div className="subject-mcq-citation">📄 {item.citation}</div>}
                             </div>
                         ))
                     ) : (
-                        data.map((item, i) => (
+                        (data.mcqs || []).map((item, i) => (
                             <div key={i} className="study-item-card">
                                 <p style={{ fontWeight: 600, marginBottom: '16px' }}>{item.question}</p>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {item.options.map((opt, oi) => (
+                                    {Object.entries(item.options).map(([key, opt], oi) => (
                                         <div key={oi} style={{ 
                                             padding: '10px', 
                                             borderRadius: '8px', 
-                                            background: oi === item.correctAnswer ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.03)',
-                                            border: `1px solid ${oi === item.correctAnswer ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-subtle)'}`,
+                                            background: key === item.correct ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.03)',
+                                            border: `1px solid ${key === item.correct ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-subtle)'}`,
                                             fontSize: '0.85rem'
                                         }}>
-                                            {opt} {oi === item.correctAnswer && '✓'}
+                                            <strong>{key}.</strong> {opt} {key === item.correct && '✓'}
                                         </div>
-                                    ))}
+                                ))}
                                 </div>
+                                {item.explanation && (
+                                    <div className="subject-mcq-explanation">
+                                        <strong>Explanation:</strong>
+                                        <div className="subject-markdown-body" dangerouslySetInnerHTML={renderRichText(item.explanation)} />
+                                    </div>
+                                )}
                             </div>
                         ))
                     )}

@@ -7,7 +7,7 @@ export default function WhyDifferent() {
         {
             icon: "🛡️",
             title: "Hallucination Free",
-            desc: "Answers are 100% grounded in your uploaded data. If it's not in your notes, the AI will tell you."
+            desc: "Answers are 100% grounded in your uploaded data. If it is not in your notes, the AI will tell you."
         },
         {
             icon: "🔍",
@@ -42,7 +42,7 @@ export default function WhyDifferent() {
                 <ScrollReveal>
                     <div className="section-tag">Why Different</div>
                     <h2 className="section-title">Built for precision,<br />not just chat.</h2>
-                    <p className="section-sub">Standard AI is a generalist. AskMyNotes is your personal specialist who knows exactly what you've been taught.</p>
+                    <p className="section-sub">Standard AI is a generalist. AskMyNotes is your personal specialist who knows exactly what you have been taught.</p>
                 </ScrollReveal>
 
                 <div className="why-grid">

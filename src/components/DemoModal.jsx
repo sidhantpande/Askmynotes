@@ -12,13 +12,39 @@ export default function DemoModal({ isOpen, onClose }) {
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState("");
     const [isTyping, setIsTyping] = useState(false);
+    const [preview, setPreview] = useState({
+        subjectTitle: "Physics",
+        files: [],
+        stats: null,
+    });
     const scrollRef = useRef(null);
 
     useEffect(() => {
         if (isOpen) {
-            setMessages([
-                { sender: "ai", text: "Hi! I'm the AskMyNotes demo assistant. I've pre-loaded your Physics notes. What would you like to know?" }
-            ]);
+            let alive = true;
+            fetch("/api/demo")
+                .then((res) => res.json())
+                .then((data) => {
+                    if (!alive) return;
+                    setTimeout(() => {
+                        if (!alive) return;
+                        setPreview({
+                            subjectTitle: data.subject?.title || "Physics",
+                            files: data.subject?.files || [],
+                            stats: data.stats || null,
+                        });
+                        setMessages(data.messages?.map((msg) => ({
+                            sender: msg.role,
+                            text: msg.text,
+                            citation: msg.citation,
+                            confidence: msg.confidence?.toLowerCase(),
+                        })) || []);
+                    }, 0);
+                });
+
+            return () => {
+                alive = false;
+            };
         }
     }, [isOpen]);
 
@@ -28,7 +54,7 @@ export default function DemoModal({ isOpen, onClose }) {
         }
     }, [messages, isTyping]);
 
-    const handleSendMessage = (text) => {
+    const handleSendMessage = async (text) => {
         if (!text.trim()) return;
 
         // Add user message
@@ -37,16 +63,26 @@ export default function DemoModal({ isOpen, onClose }) {
         setInputValue("");
         setIsTyping(true);
 
-        // Simulate AI response
-        setTimeout(() => {
-            setIsTyping(false);
+        try {
+            const res = await fetch("/api/demo");
+            const data = await res.json();
+            const fallback = data.messages?.[1];
             setMessages(prev => [...prev, {
                 sender: "ai",
-                text: "In this demo mode, I've analyzed your notes and found that Chapter 3 discusses the relationship between forces and acceleration in detail.",
-                citation: "Physics_Unit1.pdf · P. 12",
-                confidence: "high"
+                text: fallback?.text || "I found relevant information in your notes and can help you explore it further.",
+                citation: fallback?.citation,
+                confidence: fallback?.confidence?.toLowerCase() || "medium"
             }]);
-        }, 1500);
+        } catch {
+            setMessages(prev => [...prev, {
+                sender: "ai",
+                text: "I found relevant information in your notes and can help you explore it further.",
+                citation: `${preview.subjectTitle}_Notes.pdf · P. 1`,
+                confidence: "medium"
+            }]);
+        } finally {
+            setIsTyping(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -66,9 +102,17 @@ export default function DemoModal({ isOpen, onClose }) {
 
                 <div className="modal-chat">
                     <div className="modal-subject-bar">
-                        <div className="active-subject">Physics Mode</div>
-                        <div className="modal-file">Active: Physics_Full.pdf</div>
+                        <div className="active-subject">{preview.subjectTitle} Mode</div>
+                        <div className="modal-file">Active: {preview.files[0] || `${preview.subjectTitle}_Notes.pdf`}</div>
                     </div>
+
+                    {preview.stats && (
+                        <div className="modal-stats" style={{ display: "flex", gap: "12px", padding: "0 20px 12px", flexWrap: "wrap" }}>
+                            <span className="modal-stat">Subjects: {preview.stats.subjects}</span>
+                            <span className="modal-stat">Notes: {preview.stats.notes}</span>
+                            <span className="modal-stat">Answers: {preview.stats.answers}</span>
+                        </div>
+                    )}
 
                     <div className="modal-messages" ref={scrollRef}>
                         <div className="chat-message-group">
@@ -102,7 +146,7 @@ export default function DemoModal({ isOpen, onClose }) {
                     <div className="modal-quick-qs">
                         <span className="quick-q-label">Quick ask:</span>
                         {QUICK_QUESTIONS.map((q, i) => (
-                            <button key={i} className="quick-q" onClick={() => handleSendMessage(q)}>{q}</button>
+                            <button key={i} type="button" className="quick-q" onClick={() => handleSendMessage(q)}>{q}</button>
                         ))}
                     </div>
 

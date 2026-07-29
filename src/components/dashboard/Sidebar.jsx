@@ -30,7 +30,7 @@ export default function Sidebar({ subjects = [], user, onProfileClick }) {
           Dashboard
         </Link>
 
-        <button className="dash-sidebar-link" onClick={() => setWorkspaceOpen(!workspaceOpen)}>
+        <button type="button" className="dash-sidebar-link" onClick={() => setWorkspaceOpen(!workspaceOpen)}>
           <div className="dash-ws-toggle">
             <div className="dash-ws-toggle-left">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
@@ -80,7 +80,7 @@ export default function Sidebar({ subjects = [], user, onProfileClick }) {
       <div className="dash-sidebar-section">
         <div className="dash-sidebar-section-title">Settings</div>
 
-        <button className="dash-sidebar-link" onClick={onProfileClick}>
+        <button type="button" className="dash-sidebar-link" onClick={onProfileClick}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
           Account Profile
         </button>
@@ -88,6 +88,7 @@ export default function Sidebar({ subjects = [], user, onProfileClick }) {
 
       <div className="dash-sidebar-footer">
         <button
+          type="button"
           onClick={async () => {
             await signOut();
           }}

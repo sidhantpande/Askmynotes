@@ -6,13 +6,83 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/dashboard/Sidebar';
 import Header from '@/components/dashboard/Header';
 import { createClient } from '@/utils/supabase/client';
+import { getSafeUser } from '@/utils/supabase/auth';
 import './dashboard.css';
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatInlineMarkdown(text) {
+    return escapeHtml(text)
+        .replace(/\\\((.*?)\\\)/g, '$1')
+        .replace(/\\\[(.*?)\\\]/g, '$1')
+        .replace(/\$(.*?)\$/g, '$1')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code>$1</code>');
+}
+
+function renderRichText(text) {
+    const input = String(text || '').trim();
+    if (!input) return null;
+
+    const lines = input.split(/\r?\n/);
+    const blocks = [];
+    let currentList = [];
+
+    const flushList = () => {
+        if (!currentList.length) return;
+        blocks.push(`<ul class="voice-markdown-list">${currentList.map((item) => `<li>${item}</li>`).join('')}</ul>`);
+        currentList = [];
+    };
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) {
+            flushList();
+            continue;
+        }
+
+        const heading = line.match(/^(#{1,3})\s+(.*)$/);
+        if (heading) {
+            flushList();
+            const level = heading[1].length;
+            blocks.push(`<h${level} class="voice-markdown-h${level}">${formatInlineMarkdown(heading[2])}</h${level}>`);
+            continue;
+        }
+
+        const bullet = line.match(/^[-*•]\s+(.*)$/);
+        if (bullet) {
+            currentList.push(formatInlineMarkdown(bullet[1]));
+            continue;
+        }
+
+        const numbered = line.match(/^\d+\.\s+(.*)$/);
+        if (numbered) {
+            currentList.push(formatInlineMarkdown(numbered[1]));
+            continue;
+        }
+
+        flushList();
+        blocks.push(`<p class="voice-markdown-p">${formatInlineMarkdown(line)}</p>`);
+    }
+
+    flushList();
+    return { __html: blocks.join('') };
+}
 
 const SUBJECT_COLORS = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
 
 export default function DashboardPage() {
     const router = useRouter();
     const [subjects, setSubjects] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [isCreating, setIsCreating] = useState(false);
     const [newName, setNewName] = useState('');
     const [showProfile, setShowProfile] = useState(false);
@@ -28,11 +98,10 @@ export default function DashboardPage() {
     const recognitionRef = useRef(null);
     const synthRef = useRef(null);
 
-    const supabase = createClient();
-
     useEffect(() => {
         const getUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const supabase = createClient();
+            const { user } = await getSafeUser();
             if (!user) {
                 router.push('/auth');
                 return;
@@ -50,18 +119,25 @@ export default function DashboardPage() {
             }
         };
         getUser();
-    }, []);
+    }, [router]);
 
     const navigateToSubject = (title) => {
         router.push(`/subject/${encodeURIComponent(title)}`);
     };
 
     const canCreate = subjects.length < 6;
+    const filteredSubjects = subjects.filter((sub) => {
+        const query = searchQuery.trim().toLowerCase();
+        if (!query) return true;
+        return [sub.title, sub.color, new Date(sub.created_at).toLocaleDateString()]
+            .some((value) => String(value).toLowerCase().includes(query));
+    });
 
     const handleCreate = async (e) => {
         if (e) e.preventDefault();
         if (!newName.trim() || !canCreate || !user) return;
 
+        const supabase = createClient();
         const { data, error } = await supabase
             .from('subjects')
             .insert([{
@@ -84,6 +160,7 @@ export default function DashboardPage() {
     };
 
     const handleDelete = async (id) => {
+        const supabase = createClient();
         const { error } = await supabase
             .from('subjects')
             .delete()
@@ -160,28 +237,10 @@ export default function DashboardPage() {
 
             if (!res.ok) throw new Error('Failed to fetch');
 
-            // ⚡ Streaming handler for Voice Assistant
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let accumulatedText = '';
-            let metadataParsed = false;
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value);
-                if (!metadataParsed && chunk.includes('---')) {
-                    const parts = chunk.split('\n---\n');
-                    accumulatedText = parts[1] || '';
-                    metadataParsed = true;
-                } else {
-                    accumulatedText += chunk;
-                }
-            }
-
-            setVoiceMessages(prev => [...prev, { role: 'ai', text: accumulatedText }]);
-            speakText(accumulatedText);
+            const data = await res.json();
+            const answerText = data.answer || 'I could not generate an answer.';
+            setVoiceMessages(prev => [...prev, { role: 'ai', text: answerText }]);
+            speakText(answerText);
         } catch (error) {
             const errMsg = 'Sorry, I had trouble processing that. Please try again.';
             setVoiceMessages(prev => [...prev, { role: 'ai', text: errMsg }]);
@@ -209,7 +268,13 @@ export default function DashboardPage() {
             />
 
             <div className="dash-main">
-                <Header user={user} canCreate={canCreate} onCreateClick={openCreateForm} />
+                <Header
+                    user={user}
+                    canCreate={canCreate}
+                    onCreateClick={openCreateForm}
+                    searchValue={searchQuery}
+                    onSearchChange={setSearchQuery}
+                />
 
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -284,7 +349,7 @@ export default function DashboardPage() {
 
                         <div className="dash-subjects-grid">
                             <AnimatePresence mode="popLayout">
-                                {subjects.map((sub, i) => (
+                                {filteredSubjects.map((sub, i) => (
                                     <motion.div
                                         key={sub.id}
                                         layout
@@ -312,7 +377,7 @@ export default function DashboardPage() {
                                     </motion.div>
                                 ))}
 
-                                {canCreate && (
+                                {canCreate && searchQuery.trim().length === 0 && (
                                     <motion.div
                                         key="create-slot"
                                         layout
@@ -336,7 +401,7 @@ export default function DashboardPage() {
                                                 </div>
                                             </form>
                                         ) : (
-                                            <button className="dash-create-card" onClick={openCreateForm}>
+                                            <button type="button" className="dash-create-card" onClick={openCreateForm}>
                                                 <div className="dash-create-card-icon">
                                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                                                 </div>
@@ -360,20 +425,23 @@ export default function DashboardPage() {
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             </button>
                             <div className="dash-profile-avatar-wrap">
-                                <div className="dash-profile-avatar-big">KS</div>
+                            <div className="dash-profile-avatar-big">
+                                {(user?.user_metadata?.first_name?.[0] || user?.email?.[0] || 'U').toUpperCase()}
+                                {(user?.user_metadata?.last_name?.[0] || '').toUpperCase()}
+                            </div>
                             </div>
                         </div>
                         <div className="dash-profile-body">
                             <div className="dash-profile-name">
                                 {user?.user_metadata?.first_name} {user?.user_metadata?.last_name}
                             </div>
-                            <div className="dash-profile-headline">Engineering Student · AskMyNotes User</div>
+                            <div className="dash-profile-headline">AskMyNotes study workspace</div>
                             <div className="dash-profile-info-grid">
                                 <div className="dash-profile-info-item"><label>Email</label><span>{user?.email}</span></div>
-                                <div className="dash-profile-info-item"><label>Status</label><span>Premium Student</span></div>
+                                <div className="dash-profile-info-item"><label>Status</label><span>Active learner</span></div>
                                 <div className="dash-profile-info-item"><label>Subjects</label><span>{subjects.length} active</span></div>
-                                <div className="dash-profile-info-item"><label>Notes Progress</label><span>{subjects.length > 0 ? 'Verified' : 'Pending'}</span></div>
-                                <div className="dash-profile-info-item"><label>Access Level</label><span>Unlimited AI</span></div>
+                                <div className="dash-profile-info-item"><label>Visible Subjects</label><span>{filteredSubjects.length}</span></div>
+                                <div className="dash-profile-info-item"><label>Access Level</label><span>Local workspace</span></div>
                                 <div className="dash-profile-info-item"><label>Member Since</label><span>{user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Jan 2025'}</span></div>
                             </div>
                         </div>
@@ -399,6 +467,7 @@ export default function DashboardPage() {
                                 className="voice-subject-select"
                                 value={voiceSubject || subjects[0]?.title || ''}
                                 onChange={(e) => setVoiceSubject(e.target.value)}
+                                disabled={subjects.length === 0}
                             >
                                 {subjects.length === 0 && <option value="">No subjects</option>}
                                 {subjects.map((s) => (
@@ -410,12 +479,21 @@ export default function DashboardPage() {
                         {/* Messages */}
                         <div className="voice-messages">
                             {voiceMessages.length === 0 && (
-                                <div className="voice-empty">Tap the mic and ask a question about your notes</div>
+                                <div className="voice-empty">
+                                    {subjects.length === 0
+                                        ? 'Create a subject first, then use the mic to ask about your notes.'
+                                        : 'Tap the mic and ask a question about your notes'}
+                                </div>
                             )}
                             {voiceMessages.map((msg, i) => (
                                 <div key={i} className={`voice-msg ${msg.role}`}>
                                     <div className="voice-msg-avatar">{msg.role === 'ai' ? '✦' : 'U'}</div>
-                                    <div className="voice-msg-text">{msg.text}</div>
+                                    <div
+                                        className="voice-msg-text rich"
+                                        dangerouslySetInnerHTML={msg.role === 'ai' ? renderRichText(msg.text) : undefined}
+                                    >
+                                        {msg.role !== 'ai' ? msg.text : null}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -444,6 +522,7 @@ export default function DashboardPage() {
                             <button
                                 className={`voice-mic-btn ${isListening ? 'listening' : ''}`}
                                 onClick={isListening ? stopListening : startListening}
+                                disabled={subjects.length === 0}
                             >
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
                             </button>

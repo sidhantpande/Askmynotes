@@ -3,7 +3,6 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { Document } from "@langchain/core/documents";
 import { addDocuments } from "@/lib/vectorStore";
 import { createClient } from "@/utils/supabase/server";
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.js";
 
 // 🚀 Enforce Node.js runtime for stable PDF processing
 export const runtime = "nodejs";
@@ -38,49 +37,41 @@ export async function POST(request) {
 
     // 📄 PDF Processing
     if (fileName.endsWith(".pdf")) {
-      pdfjsLib.GlobalWorkerOptions.workerPort = null;
+      const parsePdf = (await import("pdf-parse")).default;
       const buffer = Buffer.from(await file.arrayBuffer());
+      const parsed = await parsePdf(buffer);
+      const pages = String(parsed.text || "")
+        .split(/\f/g)
+        .map((pageText) => pageText.trim())
+        .filter(Boolean);
 
-      const loadingTask = pdfjsLib.getDocument({
-        data: new Uint8Array(buffer),
-        disableWorker: true,
-        useWorkerFetch: false,
-        isEvalSupported: false,
+      const splitter = new RecursiveCharacterTextSplitter({
+        chunkSize: 800,
+        chunkOverlap: 150,
+        separators: ["\n\n", "\n", ". ", " ", ""],
       });
 
-      const pdf = await loadingTask.promise;
-
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        const pageText = content.items.map(item => item.str).join(" ");
-
-        if (pageText.trim()) {
-          // 🧠 Semantic Splitting: Paragraph-aware with sentence boundary preservation
-          const splitter = new RecursiveCharacterTextSplitter({
-            chunkSize: 800,
-            chunkOverlap: 150,
-            separators: ["\n\n", "\n", ". ", " ", ""],
-          });
-
-          const pageChunks = await splitter.splitText(pageText);
-
-          pageChunks.forEach((chunk, chunkIdx) => {
-            processedChunks.push(new Document({
-              pageContent: chunk,
-              metadata: {
-                subject,
-                userId,
-                fileName,
-                pageNumber: i,
-                chunkId: `${fileName}_p${i}_c${chunkIdx}`,
-              }
-            }));
-          });
-        }
-        page.cleanup();
+      if (pages.length === 0 && parsed.text?.trim()) {
+        pages.push(parsed.text.trim());
       }
-      await pdf.destroy();
+
+      for (let i = 0; i < pages.length; i += 1) {
+        const pageText = pages[i];
+        const pageChunks = await splitter.splitText(pageText);
+
+        pageChunks.forEach((chunk, chunkIdx) => {
+          processedChunks.push(new Document({
+            pageContent: chunk,
+            metadata: {
+              subject,
+              userId,
+              fileName,
+              pageNumber: i + 1,
+              chunkId: `${fileName}_p${i + 1}_c${chunkIdx}`,
+            }
+          }));
+        });
+      }
     } else {
       // 📄 Handle TXT
       const text = await file.text();
@@ -109,6 +100,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       message: `Processed into ${processedChunks.length} semantic chunks`,
+      chunksCount: processedChunks.length,
     });
 
   } catch (error) {

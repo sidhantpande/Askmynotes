@@ -23,7 +23,7 @@ export default function TechArchitecture() {
                 <ScrollReveal>
                     <div className="section-tag">Tech Stack</div>
                     <h2 className="section-title">Institutional grade<br />AI architecture.</h2>
-                    <p className="section-sub">We don't just 'wrap' ChatGPT. We've built a multi-stage RAG (Retrieval Augmented Generation) pipeline for extreme precision.</p>
+                    <p className="section-sub">We don&apos;t just &apos;wrap&apos; ChatGPT. We&apos;ve built a multi-stage RAG (Retrieval Augmented Generation) pipeline for extreme precision.</p>
                 </ScrollReveal>
 
                 <div className="arch-pipeline">

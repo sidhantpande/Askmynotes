@@ -15,24 +15,15 @@ import ProgressBar from "@/components/ProgressBar";
 import DemoModal from "@/components/DemoModal";
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-
     // Theme initialization
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "light") {
       document.body.classList.add("light-mode");
     }
   }, []);
-
-  if (!mounted) {
-    return (
-      <div style={{ background: "#08050F", minHeight: "100vh" }} />
-    );
-  }
 
   return (
     <>

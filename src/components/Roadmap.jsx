@@ -44,7 +44,7 @@ export default function Roadmap() {
                 <ScrollReveal>
                     <div className="section-tag">Roadmap</div>
                     <h2 className="section-title">The future of<br />autonomous learning.</h2>
-                    <p className="section-sub">We're building the infrastructure for a world where AI doesn't think for you, but learns with you.</p>
+                    <p className="section-sub">We&apos;re building the infrastructure for a world where AI doesn&apos;t think for you, but learns with you.</p>
                 </ScrollReveal>
 
                 <div className="timeline">

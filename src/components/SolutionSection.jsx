@@ -33,7 +33,7 @@ export default function SolutionSection() {
                 <ScrollReveal>
                     <div className="section-tag">The Solution</div>
                     <h2 className="section-title">The Subject-Scoped AI<br />Study Methodology.</h2>
-                    <p className="section-sub">We isolate AI knowledge to your specific notes, ensuring 100% relevance to what you're actually studying.</p>
+                    <p className="section-sub">We isolate AI knowledge to your specific notes, ensuring 100% relevance to what you&apos;re actually studying.</p>
                 </ScrollReveal>
 
                 <div className="steps-container">

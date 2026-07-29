@@ -18,7 +18,7 @@ export default function StudyMode() {
                 <ScrollReveal>
                     <div className="section-tag">Active Recall</div>
                     <h2 className="section-title">Turn notes into tests.<br />Automatically.</h2>
-                    <p className="section-sub">Don't just read. Test yourself. AI generates subject-scoped MCQs and short-answer questions from your own data.</p>
+                    <p className="section-sub">Don&apos;t just read. Test yourself. AI generates subject-scoped MCQs and short-answer questions from your own data.</p>
                 </ScrollReveal>
 
                 <div className="study-layout">
@@ -57,7 +57,7 @@ export default function StudyMode() {
                                 {showExplanation && (
                                     <div className="explanation">
                                         <strong>Correct Answer: B</strong>
-                                        <p>Ohm's Law (V = IR) states that the current through a conductor between two points is directly proportional to the voltage across the two points.</p>
+                                        <p>Ohm&apos;s Law (V = IR) states that the current through a conductor between two points is directly proportional to the voltage across the two points.</p>
                                         <div className="explanation-citation">
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
                                             Physics_Electricity.pdf · Page 8
@@ -65,7 +65,7 @@ export default function StudyMode() {
                                     </div>
                                 )}
                             </div>
-                            <div className="mcq-more">AI generated from "Physics_Electricity.pdf"</div>
+                            <div className="mcq-more">AI generated from &quot;Physics_Electricity.pdf&quot;</div>
                         </div>
                     </ScrollReveal>
 
@@ -76,14 +76,14 @@ export default function StudyMode() {
                                 Short Answer Practice
                             </div>
                             <div className="sa-item">
-                                <div className="sa-q">Explain the concept of 'Thermal Equilibrium'.</div>
+                                <div className="sa-q">Explain the concept of &apos;Thermal Equilibrium&apos;.</div>
                                 <div className="sa-hint">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
                                     Tap to see suggested points
                                 </div>
                             </div>
                             <div className="sa-item">
-                                <div className="sa-q">What is the Zeroeth Law of Thermodynamics?</div>
+                                <div className="sa-q">What is the Zeroth Law of Thermodynamics?</div>
                                 <div className="sa-hint">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
                                     Tap to see suggested points

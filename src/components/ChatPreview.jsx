@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ScrollReveal from "./ScrollReveal";
 
 const SUBJECTS = [
@@ -53,6 +53,20 @@ const SUBJECTS = [
 
 export default function ChatPreview() {
     const [activeSub, setActiveSub] = useState(SUBJECTS[0]);
+    const [livePreview, setLivePreview] = useState(null);
+
+    useEffect(() => {
+        let alive = true;
+        fetch("/api/demo")
+            .then((res) => res.json())
+            .then((data) => {
+                if (alive) setLivePreview(data);
+            })
+            .catch(() => {});
+        return () => {
+            alive = false;
+        };
+    }, []);
 
     return (
         <section className="section section-chat" id="chat-preview">
@@ -60,7 +74,11 @@ export default function ChatPreview() {
                 <ScrollReveal>
                     <div className="section-tag">Feature Preview</div>
                     <h2 className="section-title">Context is everything.<br />No more mixed knowledge.</h2>
-                    <p className="section-sub">Switch between subjects instantly. AskMyNotes only uses the files you've uploaded for that specific subject cluster.</p>
+                    <p className="section-sub">
+                        {livePreview
+                            ? `Live workspace preview: ${livePreview.stats?.subjects || 0} subjects, ${livePreview.stats?.notes || 0} active files, and grounded answers from the selected subject.`
+                            : "Switch between subjects instantly. AskMyNotes only uses the files you've uploaded for that specific subject cluster."}
+                    </p>
                 </ScrollReveal>
 
                 <div className="chat-demo">

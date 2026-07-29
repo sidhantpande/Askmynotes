@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "bootstrap:local": "node scripts/bootstrap-local.mjs",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status"
   },
   "dependencies": {
     "@langchain/community": "^1.1.19",
@@ -17,15 +21,18 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
     "@vercel/analytics": "^1.6.1",
+    "chromadb": "^3.5.0",
     "framer-motion": "^12.38.0",
     "next": "^16.2.4",
     "openai": "^6.35.0",
-    "pdfjs-dist": "^3.11.174",
+    "pdf-parse": "^2.4.5",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "canvas": "file:./vendor/canvas"
   },
   "devDependencies": {
     "eslint": "^9",
-    "eslint-config-next": "16.1.6"
+    "eslint-config-next": "16.1.6",
+    "typescript": "^5.8.3"
   }
 }

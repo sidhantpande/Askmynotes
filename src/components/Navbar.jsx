@@ -3,17 +3,18 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/client";
 import { signOut } from "@/app/auth/actions";
+import { getSafeUser } from "@/utils/supabase/auth";
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [activeSection, setActiveSection] = useState("hero");
-    const [isDarkMode, setIsDarkMode] = useState(true);
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        if (typeof window === "undefined") return true;
+        return localStorage.getItem("theme") !== "light";
+    });
     const [user, setUser] = useState(null);
-
-    const supabase = createClient();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -37,28 +38,34 @@ export default function Navbar() {
 
         // Check session
         const checkUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { user } = await getSafeUser();
             setUser(user);
         };
         checkUser();
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-        });
+        let subscription = null;
+        (async () => {
+            const { createClient } = await import("@/utils/supabase/client");
+            const supabase = createClient();
+            const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
+                if (!session?.user) {
+                    const { user } = await getSafeUser();
+                    setUser(user);
+                    return;
+                }
+                setUser(session.user);
+            });
+            subscription = data.subscription;
+        })();
 
-        // Check dark mode
-        if (typeof window !== "undefined") {
-            const savedTheme = localStorage.getItem("theme");
-            if (savedTheme === "light") {
-                setIsDarkMode(false);
-                document.body.classList.add("light-mode");
-            }
+        if (typeof window !== "undefined" && localStorage.getItem("theme") === "light") {
+            document.body.classList.add("light-mode");
         }
 
         return () => {
             window.removeEventListener("scroll", handleScroll);
-            subscription.unsubscribe();
+            subscription?.unsubscribe();
         };
     }, []);
 
